@@ -1,0 +1,29 @@
+# Python environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Large scientific datasets
+data/
+*.bin
+*.f32
+
+# Compiled files
+build/
+CMakeFiles/
+CMakeCache.txt
+
+# Temporary compression files
+*.sz
+*.tmp
+
+# Logs
+*.log
+
+# Editor settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
