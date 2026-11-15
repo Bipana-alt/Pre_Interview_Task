@@ -1,44 +1,40 @@
-# Error-Bounded Lossy Compression of Hurricane ISABEL Pressure Data Using SZ3
+# Error-Bounded Lossy Compression Using SZ3
 
-## 1. Introduction
+## 1. Methodology
 
-Large-scale scientific simulations generate substantial volumes of floating-point data, creating challenges for storage, data movement, and analysis. Error-bounded lossy compression reduces data size while controlling the difference between original and reconstructed values. Unlike lossless compression, it allows a specified amount of reconstruction error in exchange for potentially higher compression ratios.
+### 1.1 Environment Setup
 
-This study evaluates SZ3 on the Hurricane ISABEL pressure dataset using five relative error bounds ranging from 10⁻² to 10⁻⁶. The objective is to investigate the trade-off between compression ratio, bitrate, and reconstruction quality, measured using peak signal-to-noise ratio (PSNR). Compression and decompression times are also measured, and PSNR is independently verified using Python and NumPy.
+I used a Windows computer for this task, so I first set up Windows Subsystem for Linux (WSL) and installed Ubuntu 26.04.1 LTS. I then installed the tools needed to build SZ3, including CMake and a C++ compiler.
 
-## 2. Experimental Methodology
+I cloned the SZ3 repository from GitHub and built it using CMake in Release mode. My environment used GNU g++ 15.2.0 and CMake 4.2.3. After building SZ3, I ran the provided smoke test to check that it was working correctly. The test passed, and I did not encounter any build errors.
 
-### 2.1 Dataset and Computing Environment
+### 1.2 Dataset and Compression Experiments
 
-The Hurricane ISABEL pressure field (`Pf48.bin.f32`) contains 25 million single-precision (float32) values with dimensions 100 × 500 × 500. The uncompressed dataset occupies 100,000,000 bytes (100 MB). Its minimum and maximum values are −3411.7407 and 3224.3979, respectively, giving a data range of 6636.1387.
+I downloaded the Hurricane ISABEL pressure dataset and used the file `Pf48.bin.f32`. The dataset contains 25 million float32 values arranged in a 100 × 500 × 500 array, with a total size of 100 MB.
 
-SZ3 was compiled from source on Ubuntu 26.04.1 LTS running through Windows Subsystem for Linux (WSL), using GNU g++ 15.2.0 and CMake 4.2.3. The build completed successfully, and the bundled smoke test passed.
+I ran SZ3 on this dataset using five relative error bounds: 10⁻², 10⁻³, 10⁻⁴, 10⁻⁵, and 10⁻⁶. For each error bound, I used the same dataset and recorded the compression ratio, PSNR, compression time, and decompression time.
 
-### 2.2 Compression Configuration and Evaluation
+I calculated the bitrate using:
 
-Five relative error bounds were evaluated: 10⁻², 10⁻³, 10⁻⁴, 10⁻⁵, and 10⁻⁶. The SZ3 command-line interface was configured for float32 input with dimensions specified as `500 500 100` and relative error mode (`-M REL`).
+**Bitrate = 32 / Compression Ratio**
 
-For each error bound, compression ratio (CR), PSNR, compression time, and decompression time were recorded. Bitrate was calculated as:
+I also repeated the compression and decompression experiments three additional times for each error bound to check the variation in execution times. I calculated the mean and sample standard deviation from these three repeated trials.
 
-**Bitrate = 32 / CR**
+### 1.3 PSNR Verification
 
-The relative error bound ε corresponds to a maximum permitted absolute error of ε × R, where R is the original data range.
+To check the PSNR reported by SZ3, I wrote a Python script using NumPy. I loaded the original and reconstructed datasets for the 10⁻³ error bound and calculated the mean squared error (MSE).
 
-PSNR was calculated using:
+I then calculated PSNR using the original data range and compared my result with the value reported by SZ3.
 
-**PSNR = 20 log₁₀(R) − 10 log₁₀(MSE)**
+My calculated PSNR was 69.2792662564 dB, while SZ3 reported 69.279266 dB. The difference was approximately 2.56 × 10⁻⁷ dB, which is below the required tolerance of 0.001 dB.
 
-where MSE is the mean squared error between original and reconstructed values.
+## 2. Results
 
-Three additional compression/decompression trials were performed for each error bound. Timing results are reported as the mean and sample standard deviation of these three trials.
+### 2.1 Compression Results
 
-## 3. Experimental Results
+The following table shows the compression ratio, bitrate, and PSNR for the five error bounds.
 
-### 3.1 Rate-Distortion Performance
-
-Table 1 summarizes the compression ratio, bitrate, and PSNR for all five error bounds.
-
-**Table 1. SZ3 compression performance on Hurricane ISABEL pressure data.**
+**Table 1. SZ3 compression results**
 
 | Error bound | Compression ratio | Bitrate (bits/value) | PSNR (dB) |
 |---|---:|---:|---:|
@@ -48,17 +44,15 @@ Table 1 summarizes the compression ratio, bitrate, and PSNR for all five error b
 | 10⁻⁵ | 8.4931 | 3.7678 | 104.7712 |
 | 10⁻⁶ | 4.9334 | 6.4864 | 125.5756 |
 
-The compression ratio decreased from 939.56 to 4.93 as the relative error bound tightened from 10⁻² to 10⁻⁶. Over the same range, PSNR increased from 53.41 dB to 125.58 dB. This demonstrates that stricter reconstruction accuracy requires a higher bitrate.
+As the error bound became smaller, the compression ratio decreased and PSNR increased. The highest compression ratio was obtained at 10⁻², while the highest PSNR was obtained at 10⁻⁶.
 
-The bitrate-versus-PSNR relationship is illustrated in the accompanying rate-distortion figure (`rate_distortion.pdf`).
+I also created a rate-distortion plot showing bitrate on the x-axis and PSNR on the y-axis. The plot is included separately as `rate_distortion.pdf`.
 
-### 3.2 Compression and Decompression Times
+### 2.2 Compression and Decompression Time
 
-Table 2 presents execution times from three additional trials per error bound.
+**Table 2. Execution time in seconds (mean ± sample standard deviation, 3 trials)**
 
-**Table 2. Execution times in seconds (mean ± sample standard deviation, n = 3).**
-
-| Error bound | Compression time | Decompression time |
+| Error bound | Compression time (s) | Decompression time (s) |
 |---|---:|---:|
 | 10⁻² | 0.3541 ± 0.0501 | 0.1427 ± 0.0027 |
 | 10⁻³ | 0.3322 ± 0.0435 | 0.1590 ± 0.0120 |
@@ -66,56 +60,18 @@ Table 2 presents execution times from three additional trials per error bound.
 | 10⁻⁵ | 0.4310 ± 0.0036 | 0.2323 ± 0.0047 |
 | 10⁻⁶ | 0.4161 ± 0.0712 | 0.2276 ± 0.0066 |
 
-Decompression was consistently faster than compression. Execution time generally increased as the error bound became stricter, although the trend was not strictly monotonic.
+Decompression was faster than compression for all five error bounds. I also noticed some differences in execution time between repeated runs, even when using the same error bound.
 
-### 3.3 Independent PSNR Verification
+## 3. Discussion
 
-PSNR was independently verified for the 10⁻³ error bound using NumPy. Both the original and reconstructed arrays contained 25 million float32 values. Their element-wise differences were used to calculate MSE in float64 precision.
+From the results, I observed that there is a trade-off between compression ratio and reconstruction quality. When I used a larger error bound, SZ3 compressed the data much more, but PSNR was lower. When I reduced the error bound, the reconstructed data had a higher PSNR, but the compressed file became larger.
 
-The calculated MSE was 5.1988139989, yielding a PSNR of 69.2792662564 dB. SZ3 reported 69.279266 dB, giving an absolute discrepancy of approximately 2.56 × 10⁻⁷ dB. This is substantially below the required tolerance of 0.001 dB, confirming agreement between the independent calculation and SZ3.
+For example, at 10⁻², the compression ratio was approximately 940, while at 10⁻⁶, it was only about 4.93. This shows how much the selected error bound affects the compression results.
 
-## 4. Discussion
+I also observed that decompression consistently took less time than compression. The execution times were not exactly the same across repeated runs. Since I performed the experiments using WSL, system activity may have affected the timing measurements, although I did not measure the specific cause of the variation.
 
-The results demonstrate a clear rate-distortion trade-off. At the loosest error bound (10⁻²), SZ3 achieved a compression ratio of approximately 940, requiring only 0.0341 bits per value on average. However, reconstruction quality was lower, with PSNR of 53.41 dB. At the strictest error bound (10⁻⁶), PSNR increased to 125.58 dB, but the compression ratio decreased to 4.93.
+## 4. What Surprised Me and Future Work
 
-One notable observation was the exceptionally high compression ratio at 10⁻². This suggests that substantial data reduction is possible when relatively large reconstruction errors are permitted. However, whether such an error tolerance is scientifically acceptable depends on the intended application.
+The most surprising result for me was the very high compression ratio at the 10⁻² error bound. I did not expect the 100 MB dataset to be compressed by such a large factor. However, I also learned that a higher compression ratio does not necessarily mean better results, because the acceptable error depends on how the reconstructed data will be used.
 
-Another observation was the variability in compression time. At 10⁻⁶, the three compression trials ranged from 0.3655 to 0.4975 seconds. Possible contributing factors include operating-system scheduling, background activity, and cache effects. The measurements do not establish which factor was responsible.
-
-The experiment has several limitations. Only one scientific field and one compressor were evaluated. The timing experiments were performed under WSL rather than on a dedicated benchmarking system, and only three additional trials were collected per configuration. Furthermore, PSNR and maximum error do not by themselves establish whether the reconstructed data preserves every scientifically important feature.
-
-## 5. Conclusion and Future Work
-
-SZ3 successfully compressed the Hurricane ISABEL pressure dataset at all five tested relative error bounds. Tighter error bounds consistently improved reconstruction quality while reducing compression ratios and increasing bitrate. Independent PSNR verification agreed with SZ3 to within 2.56 × 10⁻⁷ dB, satisfying the required tolerance.
-
-Future work could compare SZ3 with another scientific compressor, such as SZp, evaluate additional scientific fields, and perform more extensive timing measurements under controlled conditions. Application-specific error analysis would also help determine which compression settings preserve the information required for downstream scientific tasks.## 2. Experimental Setup
-
-### 2.1 Dataset and Computing Environment
-
-The experiments used the Hurricane ISABEL pressure field (`Pf48.bin.f32`), consisting of 25 million single-precision (float32) values arranged in a 100 × 500 × 500 array. The original dataset occupied 100 MB (100,000,000 bytes), with values ranging from −3411.7407 to 3224.3979.
-
-SZ3 was compiled from source using GNU g++ 15.2.0 and CMake 4.2.3 on Ubuntu 26.04.1 LTS running under Windows Subsystem for Linux (WSL). The build completed successfully, and the bundled smoke test passed.
-
-### 2.2 Compression Configuration
-
-SZ3 was evaluated using five relative error bounds: 10⁻², 10⁻³, 10⁻⁴, 10⁻⁵, and 10⁻⁶. The input was interpreted as a three-dimensional float32 array, with dimensions supplied to SZ3 as `500 500 100`.
-
-For each error bound, compression ratio, bitrate, PSNR, compression time, and decompression time were recorded. Bitrate was calculated as 32 divided by the compression ratio. The maximum permitted absolute error was determined by multiplying the relative error bound by the original data range.
-
-Compression and decompression were additionally repeated three times per error bound to evaluate timing variability. Mean execution times and sample standard deviations were calculated from these repeated measurements.
-
-### 2.3 Independent PSNR Verification
-
-PSNR was independently calculated for the 10⁻³ error bound using Python and NumPy. The original and reconstructed float32 arrays were compared element by element to calculate mean squared error (MSE). PSNR was then computed using:
-
-PSNR = 20 log₁₀(R) − 10 log₁₀(MSE)
-
-where R represents the range of the original data. The independently calculated result was compared with SZ3's reported PSNR using a tolerance of 0.001 dB.# Error-Bounded Lossy Compression of Hurricane ISABEL Pressure Data Using SZ3
-
-## 1. Introduction
-
-Scientific simulations generate large volumes of floating-point data, making efficient storage and data transfer important challenges. Lossy compression offers a way to reduce data size by allowing small, controlled differences between the original and reconstructed values.
-
-In this experiment, SZ3 was evaluated using the Hurricane ISABEL pressure dataset to investigate the relationship between compression efficiency and reconstruction accuracy. Five relative error bounds, ranging from \(10^{-2}\) to \(10^{-6}\), were tested.
-
-The primary objective was to measure compression ratio, bitrate, peak signal-to-noise ratio (PSNR), and compression and decompression times. PSNR was also independently verified using Python and NumPy to confirm the accuracy of SZ3's reported results.
+If I had one more week, I would complete the tier 2 and 3 and would also compare SZ3 with SZp with the use of same dataset and error bounds. I would measure both compression quality and throughput to understand which compressor is faster and which provides better compression. I would also repeat the timing experiments more times and test another scientific dataset to see whether the same trends appear.
